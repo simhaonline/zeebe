@@ -31,6 +31,7 @@ import io.zeebe.util.sched.clock.ActorClock;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.agrona.DirectBuffer;
 
 public final class CatchEventBehavior {
@@ -148,35 +149,42 @@ public final class CatchEventBehavior {
     final long workflowInstanceKey = context.getValue().getWorkflowInstanceKey();
     final DirectBuffer bpmnProcessId = cloneBuffer(context.getValue().getBpmnProcessIdBuffer());
     final long elementInstanceKey = context.getKey();
-    final DirectBuffer messageName = cloneBuffer(message.getMessageName());
+    final Expression messageNameExpression = message.getMessageNameExpression();
+    final Optional<DirectBuffer> optMessageNameSharedBuffer =
+        expressionProcessor.evaluateStringExpression(messageNameExpression, context);
+
     final DirectBuffer correlationKey = extractedKey;
     final boolean closeOnCorrelate = handler.shouldCloseMessageSubscriptionOnCorrelate();
     final int subscriptionPartitionId =
         SubscriptionUtil.getSubscriptionPartitionId(correlationKey, partitionsCount);
 
-    subscription.setSubscriptionPartitionId(subscriptionPartitionId);
-    subscription.setMessageName(messageName);
-    subscription.setElementInstanceKey(elementInstanceKey);
-    subscription.setCommandSentTime(ActorClock.currentTimeMillis());
-    subscription.setWorkflowInstanceKey(workflowInstanceKey);
-    subscription.setBpmnProcessId(bpmnProcessId);
-    subscription.setCorrelationKey(correlationKey);
-    subscription.setTargetElementId(handler.getId());
-    subscription.setCloseOnCorrelate(closeOnCorrelate);
-    state.getWorkflowInstanceSubscriptionState().put(subscription);
+    optMessageNameSharedBuffer.ifPresent(
+        messageNameSharedBuffer -> {
+          final DirectBuffer messageNameBuffer = BufferUtil.cloneBuffer(messageNameSharedBuffer);
+          subscription.setSubscriptionPartitionId(subscriptionPartitionId);
+          subscription.setMessageName(messageNameBuffer);
+          subscription.setElementInstanceKey(elementInstanceKey);
+          subscription.setCommandSentTime(ActorClock.currentTimeMillis());
+          subscription.setWorkflowInstanceKey(workflowInstanceKey);
+          subscription.setBpmnProcessId(bpmnProcessId);
+          subscription.setCorrelationKey(correlationKey);
+          subscription.setTargetElementId(handler.getId());
+          subscription.setCloseOnCorrelate(closeOnCorrelate);
+          state.getWorkflowInstanceSubscriptionState().put(subscription);
 
-    context
-        .getSideEffect()
-        .add(
-            () ->
-                sendOpenMessageSubscription(
-                    subscriptionPartitionId,
-                    workflowInstanceKey,
-                    elementInstanceKey,
-                    bpmnProcessId,
-                    messageName,
-                    correlationKey,
-                    closeOnCorrelate));
+          context
+              .getSideEffect()
+              .add(
+                  () ->
+                      sendOpenMessageSubscription(
+                          subscriptionPartitionId,
+                          workflowInstanceKey,
+                          elementInstanceKey,
+                          bpmnProcessId,
+                          messageNameBuffer,
+                          correlationKey,
+                          closeOnCorrelate));
+        });
   }
 
   private void unsubscribeFromMessageEvents(

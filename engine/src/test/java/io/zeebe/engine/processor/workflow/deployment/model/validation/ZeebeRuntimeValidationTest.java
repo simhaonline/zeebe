@@ -184,7 +184,7 @@ public final class ZeebeRuntimeValidationTest {
         Arrays.asList(expect(ZeebeOutput.class, MISSING_PATH_EXPRESSION_MESSAGE))
       },
       {
-        // correlation key expression is not supported
+        // name expression is invalid
         Bpmn.createExecutableProcess("process")
             .startEvent()
             .intermediateCatchEvent("catch")
@@ -204,7 +204,6 @@ public final class ZeebeRuntimeValidationTest {
         Arrays.asList(expect(ZeebeSubscription.class, STATIC_EXPRESSION_MESSAGE))
       },
       {
-        // correlation key expression is not supported
         Bpmn.createExecutableProcess("process")
             .startEvent()
             .receiveTask("catch")

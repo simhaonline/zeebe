@@ -157,7 +157,9 @@ public final class CreateDeploymentTest {
   public void shouldCreateDeploymentIfUnusedInvalidMessage() {
     // given
     final BpmnModelInstance process = Bpmn.createExecutableProcess().startEvent().done();
-    process.getDefinitions().addChildElement(process.newInstance(Message.class));
+    final Message message = process.newInstance(Message.class);
+    message.setName("message");
+    process.getDefinitions().addChildElement(message);
 
     // when
     final Record<DeploymentRecordValue> deployment =

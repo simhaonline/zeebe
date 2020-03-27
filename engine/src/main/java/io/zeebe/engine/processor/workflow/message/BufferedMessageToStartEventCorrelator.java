@@ -18,7 +18,9 @@ import io.zeebe.engine.state.instance.EventScopeInstanceState;
 import io.zeebe.engine.state.message.Message;
 import io.zeebe.engine.state.message.MessageState;
 import io.zeebe.util.sched.clock.ActorClock;
+import java.util.Optional;
 import org.agrona.DirectBuffer;
+import org.agrona.concurrent.UnsafeBuffer;
 
 public final class BufferedMessageToStartEventCorrelator implements WorkflowPostProcessor {
 
@@ -83,10 +85,12 @@ public final class BufferedMessageToStartEventCorrelator implements WorkflowPost
     for (final ExecutableStartEvent startEvent : workflow.getWorkflow().getStartEvents()) {
       if (startEvent.isMessage()) {
 
-        final var messageName = startEvent.getMessage().getMessageName();
+        final Optional<String> optMessageName = startEvent.getMessage().getMessageName();
+        final org.agrona.DirectBuffer messageNameBuffer = new UnsafeBuffer();
+        messageNameBuffer.wrap(optMessageName.get().getBytes());
 
         messageState.visitMessages(
-            messageName,
+            messageNameBuffer,
             correlationKey,
             message -> {
               // correlate the first message with same correlation key that was not correlated yet

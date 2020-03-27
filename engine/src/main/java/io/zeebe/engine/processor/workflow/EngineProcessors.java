@@ -60,7 +60,12 @@ public final class EngineProcessors {
             zeebeState, expressionProcessor, subscriptionCommandSender, partitionsCount);
 
     addDeploymentRelatedProcessorAndServices(
-        catchEventBehavior, partitionId, zeebeState, typedRecordProcessors, deploymentResponder);
+        catchEventBehavior,
+        partitionId,
+        zeebeState,
+        expressionProcessor,
+        typedRecordProcessors,
+        deploymentResponder);
     addMessageProcessors(subscriptionCommandSender, zeebeState, typedRecordProcessors);
 
     final BpmnStepProcessor stepProcessor =
@@ -115,6 +120,7 @@ public final class EngineProcessors {
       final CatchEventBehavior catchEventBehavior,
       final int partitionId,
       final ZeebeState zeebeState,
+      final ExpressionProcessor expressionProcessor,
       final TypedRecordProcessors typedRecordProcessors,
       final DeploymentResponder deploymentResponder) {
     final WorkflowState workflowState = zeebeState.getWorkflowState();
