@@ -754,6 +754,7 @@
             <failIfNoTests>false</failIfNoTests>
             <trimStackTrace>false</trimStackTrace>
             <redirectTestOutputToFile>true</redirectTestOutputToFile>
+            <rerunFailingTestsCount>3</rerunFailingTestsCount>
             <properties>
               <property>
                 <name>listener</name>
@@ -779,6 +780,7 @@
             <failIfNoTests>false</failIfNoTests>
             <trimStackTrace>false</trimStackTrace>
             <redirectTestOutputToFile>true</redirectTestOutputToFile>
+            <rerunFailingTestsCount>3</rerunFailingTestsCount>
             <properties>
               <property>
                 <name>listener</name>
