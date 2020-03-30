@@ -140,9 +140,7 @@ pipeline {
 
             post {
                 always {
-                    junit(testResults: "**/*/TEST-*.xml", keepLongStdio: true) {
-                      publishFlakyTestsReport()
-                    }
+                    junit testResults: "**/*/TEST-*.xml", keepLongStdio: true, testDataPublishers: [$class: 'JUnitFlakyTestDataPublisher']
                 }
 
                 failure {
