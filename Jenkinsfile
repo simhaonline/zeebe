@@ -84,7 +84,7 @@ pipeline {
 
                     post {
                         always {
-                            junit testResults: "**/*/TEST-go.xml", keepLongStdio: true
+                            realtimeJUnit testResults: "**/*/TEST-*.xml", keepLongStdio: true
                         }
                     }
                }
@@ -140,7 +140,7 @@ pipeline {
 
             post {
                 always {
-                    junit testResults: "**/*/TEST-*.xml", keepLongStdio: true, testDataPublishers: [$class: 'JUnitFlakyTestDataPublisher']
+                    junit testResults: "**/*/TEST-*.xml", keepLongStdio: true, testDataPublishers: [[$class: 'JUnitFlakyTestDataPublisher']]
                 }
 
                 failure {
