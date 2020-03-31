@@ -84,7 +84,7 @@ pipeline {
 
                     post {
                         always {
-                            realtimeJUnit testResults: "**/*/TEST-*.xml", keepLongStdio: true
+                            junit testResults: "**/*/TEST-*.xml", keepLongStdio: true
                         }
                     }
                }
