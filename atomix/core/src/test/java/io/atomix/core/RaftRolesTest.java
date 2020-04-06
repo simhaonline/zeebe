@@ -15,6 +15,7 @@
  */
 package io.atomix.core;
 
+import static io.zeebe.test.util.TestUtil.waitUntil;
 import static org.hamcrest.Matchers.contains;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -345,6 +346,15 @@ public final class RaftRolesTest extends AbstractAtomixTest {
     // when
     final Atomix atomix = nodeTwoFuture.get();
     atomix.stop().join();
+    waitUntil(
+        () -> {
+          final long nodeOneLeaderCount =
+              nodeRoles.get(0).values().stream().filter(r -> r == Role.LEADER).count();
+          final long nodeThreeLeaderCount =
+              nodeRoles.get(2).values().stream().filter(r -> r == Role.LEADER).count();
+          return nodeOneLeaderCount == 2 || nodeThreeLeaderCount == 2;
+        },
+        1000);
     nodeRoles.get(1).clear();
     final CountDownLatch newLatch = new CountDownLatch(1);
     final CompletableFuture<Atomix> nodeTwoSecondFuture =
@@ -421,7 +431,7 @@ public final class RaftRolesTest extends AbstractAtomixTest {
         nodeIds,
         builder -> {
           final RaftPartitionGroup partitionGroup =
-              RaftPartitionGroup.builder("system")
+              RaftPartitionGroup.builder("normal")
                   .withNumPartitions(partitionCount)
                   .withPartitionSize(memberIds.size())
                   .withMembers(memberIds)
@@ -429,15 +439,16 @@ public final class RaftRolesTest extends AbstractAtomixTest {
                       new File(new File(atomixRule.getDataDir(), "log"), "" + nodeId))
                   .build();
 
-          final Atomix atomix = builder.withManagementGroup(partitionGroup).build();
+          final Atomix atomix = builder.withPartitionGroups(partitionGroup).build();
 
           final DefaultPartitionService partitionService =
               (DefaultPartitionService) atomix.getPartitionService();
-          final RaftPartitionGroup raftPartitionGroup =
-              (RaftPartitionGroup) partitionService.getSystemPartitionGroup();
 
-          // when
-          raftPartitionGroup.getPartitions().forEach(partitionConsumer);
+          partitionService.getPartitionGroups().stream()
+              .findFirst()
+              .ifPresent(
+                  raftPartitionGroup ->
+                      raftPartitionGroup.getPartitions().forEach(partitionConsumer));
           return atomix;
         });
   }
