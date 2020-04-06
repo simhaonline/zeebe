@@ -22,9 +22,8 @@ import io.zeebe.protocol.impl.record.value.deployment.Workflow;
 import io.zeebe.protocol.impl.record.value.message.MessageStartEventSubscriptionRecord;
 import io.zeebe.protocol.record.intent.DeploymentIntent;
 import io.zeebe.protocol.record.intent.MessageStartEventSubscriptionIntent;
+import io.zeebe.util.buffer.BufferUtil;
 import java.util.List;
-import java.util.Optional;
-import org.agrona.concurrent.UnsafeBuffer;
 
 public final class DeploymentCreatedProcessor implements TypedRecordProcessor<DeploymentRecord> {
 
@@ -103,22 +102,21 @@ public final class DeploymentCreatedProcessor implements TypedRecordProcessor<De
     for (final ExecutableCatchEventElement startEvent : startEvents) {
       if (startEvent.isMessage()) {
         final ExecutableMessage message = startEvent.getMessage();
-        final Optional<String> optMessageName = message.getMessageName();
 
-        optMessageName.ifPresent(
-            messageName -> {
-              final org.agrona.DirectBuffer messageNameBuffer = new UnsafeBuffer();
-              messageNameBuffer.wrap(optMessageName.get().getBytes());
-
-              subscriptionRecord.reset();
-              subscriptionRecord
-                  .setMessageName(messageNameBuffer)
-                  .setWorkflowKey(workflowKey)
-                  .setBpmnProcessId(workflow.getId())
-                  .setStartEventId(startEvent.getId());
-              streamWriter.appendNewCommand(
-                  MessageStartEventSubscriptionIntent.OPEN, subscriptionRecord);
-            });
+        message
+            .getMessageName()
+            .map(BufferUtil::wrapString)
+            .ifPresent(
+                messageNameBuffer -> {
+                  subscriptionRecord.reset();
+                  subscriptionRecord
+                      .setMessageName(messageNameBuffer)
+                      .setWorkflowKey(workflowKey)
+                      .setBpmnProcessId(workflow.getId())
+                      .setStartEventId(startEvent.getId());
+                  streamWriter.appendNewCommand(
+                      MessageStartEventSubscriptionIntent.OPEN, subscriptionRecord);
+                });
       }
     }
   }
