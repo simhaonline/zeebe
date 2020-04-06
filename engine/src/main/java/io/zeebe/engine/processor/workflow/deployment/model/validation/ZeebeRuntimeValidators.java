@@ -11,6 +11,7 @@ import io.zeebe.el.ExpressionLanguage;
 import io.zeebe.el.ResultType;
 import io.zeebe.model.bpmn.instance.ConditionExpression;
 import io.zeebe.model.bpmn.instance.Message;
+import io.zeebe.model.bpmn.instance.StartEvent;
 import io.zeebe.model.bpmn.instance.zeebe.ZeebeCalledElement;
 import io.zeebe.model.bpmn.instance.zeebe.ZeebeInput;
 import io.zeebe.model.bpmn.instance.zeebe.ZeebeLoopCharacteristics;
@@ -39,9 +40,12 @@ public final class ZeebeRuntimeValidators {
             .hasValidPath(ZeebeOutput::getTarget)
             .build(expressionLanguage),
         ZeebeExpressionValidator.verifyThat(Message.class)
+            .hasValidExpression(Message::getName, expression -> expression.isOptional())
+            .build(expressionLanguage),
+        ZeebeExpressionValidator.verifyThat(StartEvent.class)
             .hasValidExpression(
-                Message::getName,
-                expression -> expression.isConstantWithResultType(ResultType.STRING).isMandatory())
+                StartEvent::getName,
+                expression -> expression.isConstantWithResultType(ResultType.STRING))
             .build(expressionLanguage),
         // ----------------------------------------
         ZeebeExpressionValidator.verifyThat(ZeebeSubscription.class)
