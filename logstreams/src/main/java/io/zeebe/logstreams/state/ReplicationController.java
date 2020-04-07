@@ -11,6 +11,7 @@ import io.zeebe.logstreams.impl.Loggers;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
+import java.util.Optional;
 import org.agrona.collections.Object2NullableObjectHashMap;
 import org.slf4j.Logger;
 
@@ -32,10 +33,15 @@ final class ReplicationController {
     this.metrics.setCount(0);
   }
 
-  void replicate(final String snapshotId, final int totalCount, final File snapshotChunkFile) {
+  void replicate(
+      final String snapshotId,
+      final int totalCount,
+      final File snapshotChunkFile,
+      long snapshotChecksum) {
     try {
       final SnapshotChunk chunkToReplicate =
-          SnapshotChunkUtil.createSnapshotChunkFromFile(snapshotChunkFile, snapshotId, totalCount);
+          SnapshotChunkUtil.createSnapshotChunkFromFile(
+              snapshotChunkFile, snapshotId, totalCount, snapshotChecksum);
       replication.replicate(chunkToReplicate);
     } catch (final IOException ioe) {
       LOG.error(
@@ -103,7 +109,12 @@ final class ReplicationController {
 
   private boolean tryToMarkSnapshotAsValid(
       final SnapshotChunk snapshotChunk, final ReplicationContext context) {
-    if (snapshotConsumer.completeSnapshot(snapshotChunk.getSnapshotId())) {
+    final Optional<Long> pendingChecksum =
+        snapshotConsumer.getPendingSnapshotChecksum(snapshotChunk.getSnapshotId());
+
+    if (pendingChecksum.isPresent()
+        && snapshotChunk.getSnapshotChecksum() == pendingChecksum.get()
+        && snapshotConsumer.completeSnapshot(snapshotChunk.getSnapshotId())) {
       final var elapsed = System.currentTimeMillis() - context.startTimestamp;
       receivedSnapshots.remove(snapshotChunk.getSnapshotId());
       metrics.decrementCount();

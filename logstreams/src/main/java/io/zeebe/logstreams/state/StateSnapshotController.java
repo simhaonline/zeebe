@@ -12,6 +12,7 @@ import io.zeebe.db.ZeebeDbFactory;
 import io.zeebe.logstreams.impl.Loggers;
 import io.zeebe.logstreams.spi.SnapshotController;
 import io.zeebe.util.FileUtil;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -72,13 +73,23 @@ public class StateSnapshotController implements SnapshotController {
       LOG.debug("Start replicating latest snapshot {}", latestSnapshotDirectory);
 
       try (final var stream = Files.list(latestSnapshotDirectory)) {
-        final var files = stream.collect(Collectors.toList());
-        for (final var file : files) {
+        final ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+        final var paths = stream.sorted().collect(Collectors.toList());
+        for (final var path : paths) {
+          outStream.write(Files.readAllBytes(path));
+        }
+
+        final long snapshotChecksum = SnapshotChunkUtil.createChecksum(outStream.toByteArray());
+
+        for (final var path : paths) {
           executor.accept(
               () -> {
-                LOG.debug("Replicate snapshot chunk {}", file);
+                LOG.debug("Replicate snapshot chunk {}", path);
                 replicationController.replicate(
-                    latestSnapshotDirectory.getFileName().toString(), files.size(), file.toFile());
+                    latestSnapshotDirectory.getFileName().toString(),
+                    paths.size(),
+                    path.toFile(),
+                    snapshotChecksum);
               });
         }
       } catch (final IOException e) {

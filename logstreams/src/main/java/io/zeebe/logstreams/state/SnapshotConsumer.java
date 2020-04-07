@@ -7,10 +7,14 @@
  */
 package io.zeebe.logstreams.state;
 
+import java.util.Optional;
+
 public interface SnapshotConsumer {
   boolean consumeSnapshotChunk(SnapshotChunk chunk);
 
   boolean completeSnapshot(String snapshotId);
 
   void invalidateSnapshot(String snapshotId);
+
+  Optional<Long> getPendingSnapshotChecksum(String snapshotId);
 }

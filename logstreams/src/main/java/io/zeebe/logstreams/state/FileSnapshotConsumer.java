@@ -10,10 +10,14 @@ package io.zeebe.logstreams.state;
 import static java.nio.file.StandardOpenOption.CREATE_NEW;
 
 import io.zeebe.util.FileUtil;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 
 final class FileSnapshotConsumer implements SnapshotConsumer {
@@ -44,6 +48,26 @@ final class FileSnapshotConsumer implements SnapshotConsumer {
   @Override
   public void invalidateSnapshot(final String snapshotId) {
     storage.getPendingDirectoryFor(snapshotId).ifPresent(this::deletePendingSnapshot);
+  }
+
+  @Override
+  public Optional<Long> getPendingSnapshotChecksum(final String snapshotId) {
+    return storage
+        .getPendingDirectoryFor(snapshotId)
+        .flatMap(
+            path -> {
+              final ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+              try (final var chunks = Files.list(path).sorted()) {
+                final List<Path> chunkList = chunks.collect(Collectors.toList());
+                for (final var chunk : chunkList) {
+                  outStream.write(Files.readAllBytes(chunk));
+                }
+              } catch (IOException e) {
+                return Optional.empty();
+              }
+
+              return Optional.of(SnapshotChunkUtil.createChecksum(outStream.toByteArray()));
+            });
   }
 
   private void deletePendingSnapshot(final Path pendingDirectory) {
