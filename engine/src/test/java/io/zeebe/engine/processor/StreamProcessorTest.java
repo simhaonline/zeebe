@@ -88,6 +88,37 @@ public final class StreamProcessorTest {
   }
 
   @Test
+  public void shouldCallStreamProcessorLifecycleOnFail() throws InterruptedException {
+    // given
+    final StreamProcessorLifecycleAware lifecycleAware = mock(StreamProcessorLifecycleAware.class);
+    final CountDownLatch failedLatch = new CountDownLatch(1);
+    streamProcessorRule.startTypedStreamProcessor(
+        (processors, state) ->
+            processors
+                .withListener(lifecycleAware)
+                .withListener(
+                    new StreamProcessorLifecycleAware() {
+                      @Override
+                      public void onRecovered(final ReadonlyProcessingContext context) {
+                        throw new RuntimeException("force fail");
+                      }
+
+                      @Override
+                      public void onFailed() {
+                        failedLatch.countDown();
+                      }
+                    }));
+
+    // when
+    assertThat(failedLatch.await(1000, TimeUnit.MILLISECONDS)).isTrue();
+
+    // then
+    verify(lifecycleAware, times(1)).onRecovered(any());
+    verify(lifecycleAware, times(1)).onFailed();
+    verify(lifecycleAware, never()).onClose();
+  }
+
+  @Test
   public void shouldCallRecordProcessorLifecycle() throws Exception {
     // given
     final var typedRecordProcessor = mock(TypedRecordProcessor.class);

@@ -444,7 +444,11 @@ public final class TestStreams {
         return;
       }
 
-      asyncSnapshotDirector.closeAsync().join();
+      try {
+        asyncSnapshotDirector.closeAsync().join();
+      } catch (final Exception e) {
+        Loggers.IO_LOGGER.debug("Close snapshot director failed", e);
+      }
       Loggers.IO_LOGGER.debug("Close stream processor");
       streamProcessor.closeAsync().join();
       zeebeDb.close();
