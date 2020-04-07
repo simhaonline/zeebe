@@ -15,6 +15,7 @@ import io.zeebe.el.ExpressionLanguageFactory;
 import io.zeebe.model.bpmn.Bpmn;
 import io.zeebe.model.bpmn.BpmnModelInstance;
 import io.zeebe.model.bpmn.instance.ConditionExpression;
+import io.zeebe.model.bpmn.instance.StartEvent;
 import io.zeebe.model.bpmn.instance.zeebe.ZeebeCalledElement;
 import io.zeebe.model.bpmn.instance.zeebe.ZeebeInput;
 import io.zeebe.model.bpmn.instance.zeebe.ZeebeLoopCharacteristics;
@@ -309,6 +310,34 @@ public final class ZeebeRuntimeValidationTest {
             .done(),
         Arrays.asList(expect(ZeebeCalledElement.class, INVALID_EXPRESSION_MESSAGE))
       },
+      {
+        /* message on start event has expression that contains a variable reference
+         * This must fail validation, because at the time the expression is evaluated,
+         * there are no variables defined
+         */
+        Bpmn.createExecutableProcess("process")
+            .startEvent()
+            .message(messageBuilder -> messageBuilder.nameExpression("variableReference"))
+            .done(),
+        Arrays.asList(
+            expect(
+                StartEvent.class,
+                "Expected constant expression but found '=variableReference', which could not be evaluated without context: "
+                    + "failed to evaluate expression 'variableReference': no variable found for name 'variableReference'"))
+      },
+      {
+        /* message on start event has expression that evaluates to something other than string
+         * This must fail validation, because the message name must be a string
+         */
+        Bpmn.createExecutableProcess("process")
+            .startEvent()
+            .message(messageBuilder -> messageBuilder.nameExpression("false"))
+            .done(),
+        Arrays.asList(
+            expect(
+                StartEvent.class,
+                "Expected constant expression of type String for message name '=false', but was BOOLEAN"))
+      }
     };
   }
 

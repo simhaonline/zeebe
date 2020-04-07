@@ -17,6 +17,7 @@ import io.zeebe.engine.processor.workflow.deployment.model.element.ExecutableMes
 import io.zeebe.engine.processor.workflow.message.MessageCorrelationKeyContext;
 import io.zeebe.engine.processor.workflow.message.MessageCorrelationKeyContext.VariablesDocumentSupplier;
 import io.zeebe.engine.processor.workflow.message.MessageCorrelationKeyException;
+import io.zeebe.engine.processor.workflow.message.MessageNameException;
 import io.zeebe.engine.processor.workflow.message.command.SubscriptionCommandSender;
 import io.zeebe.engine.state.ZeebeState;
 import io.zeebe.engine.state.instance.TimerInstance;
@@ -28,6 +29,7 @@ import io.zeebe.protocol.record.intent.TimerIntent;
 import io.zeebe.protocol.record.value.BpmnElementType;
 import io.zeebe.util.buffer.BufferUtil;
 import io.zeebe.util.sched.clock.ActorClock;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -74,6 +76,10 @@ public final class CatchEventBehavior {
     final MessageCorrelationKeyContext scopeContext =
         new MessageCorrelationKeyContext(variablesSupplier, context.getValue().getFlowScopeKey());
 
+    // collect all message names from their respective variables, as this might fail and
+    // we might need to raise an incident
+    final Map<DirectBuffer, DirectBuffer> extractedMessageNames =
+        extractMessageNames(events, context);
     // collect all message correlation keys from their respective variables, as this might fail and
     // we might need to raise an incident
     final Map<DirectBuffer, DirectBuffer> extractedCorrelationKeys =
@@ -90,7 +96,11 @@ public final class CatchEventBehavior {
             event.getTimer(),
             context.getOutput().getStreamWriter());
       } else if (event.isMessage()) {
-        subscribeToMessageEvent(context, event, extractedCorrelationKeys.get(event.getId()));
+        subscribeToMessageEvent(
+            context,
+            event,
+            extractedCorrelationKeys.get(event.getId()),
+            extractedMessageNames.get((event.getId())));
       }
     }
 
@@ -143,48 +153,41 @@ public final class CatchEventBehavior {
   private void subscribeToMessageEvent(
       final BpmnStepContext<?> context,
       final ExecutableCatchEvent handler,
-      final DirectBuffer extractedKey) {
-    final ExecutableMessage message = handler.getMessage();
-
+      final DirectBuffer extractedKey,
+      final DirectBuffer extractedMessageName) {
     final long workflowInstanceKey = context.getValue().getWorkflowInstanceKey();
     final DirectBuffer bpmnProcessId = cloneBuffer(context.getValue().getBpmnProcessIdBuffer());
     final long elementInstanceKey = context.getKey();
-    final Expression messageNameExpression = message.getMessageNameExpression();
-    final Optional<DirectBuffer> optMessageNameSharedBuffer =
-        expressionProcessor.evaluateStringExpression(messageNameExpression, context);
 
     final DirectBuffer correlationKey = extractedKey;
+    final DirectBuffer messageName = extractedMessageName;
     final boolean closeOnCorrelate = handler.shouldCloseMessageSubscriptionOnCorrelate();
     final int subscriptionPartitionId =
         SubscriptionUtil.getSubscriptionPartitionId(correlationKey, partitionsCount);
 
-    optMessageNameSharedBuffer.ifPresent(
-        messageNameSharedBuffer -> {
-          final DirectBuffer messageNameBuffer = BufferUtil.cloneBuffer(messageNameSharedBuffer);
-          subscription.setSubscriptionPartitionId(subscriptionPartitionId);
-          subscription.setMessageName(messageNameBuffer);
-          subscription.setElementInstanceKey(elementInstanceKey);
-          subscription.setCommandSentTime(ActorClock.currentTimeMillis());
-          subscription.setWorkflowInstanceKey(workflowInstanceKey);
-          subscription.setBpmnProcessId(bpmnProcessId);
-          subscription.setCorrelationKey(correlationKey);
-          subscription.setTargetElementId(handler.getId());
-          subscription.setCloseOnCorrelate(closeOnCorrelate);
-          state.getWorkflowInstanceSubscriptionState().put(subscription);
+    subscription.setSubscriptionPartitionId(subscriptionPartitionId);
+    subscription.setMessageName(messageName);
+    subscription.setElementInstanceKey(elementInstanceKey);
+    subscription.setCommandSentTime(ActorClock.currentTimeMillis());
+    subscription.setWorkflowInstanceKey(workflowInstanceKey);
+    subscription.setBpmnProcessId(bpmnProcessId);
+    subscription.setCorrelationKey(correlationKey);
+    subscription.setTargetElementId(handler.getId());
+    subscription.setCloseOnCorrelate(closeOnCorrelate);
+    state.getWorkflowInstanceSubscriptionState().put(subscription);
 
-          context
-              .getSideEffect()
-              .add(
-                  () ->
-                      sendOpenMessageSubscription(
-                          subscriptionPartitionId,
-                          workflowInstanceKey,
-                          elementInstanceKey,
-                          bpmnProcessId,
-                          messageNameBuffer,
-                          correlationKey,
-                          closeOnCorrelate));
-        });
+    context
+        .getSideEffect()
+        .add(
+            () ->
+                sendOpenMessageSubscription(
+                    subscriptionPartitionId,
+                    workflowInstanceKey,
+                    elementInstanceKey,
+                    bpmnProcessId,
+                    messageName,
+                    correlationKey,
+                    closeOnCorrelate));
   }
 
   private void unsubscribeFromMessageEvents(
@@ -224,6 +227,13 @@ public final class CatchEventBehavior {
 
     return expressionProcessor.evaluateMessageCorrelationKeyExpression(
         correlationKeyExpression, context);
+  }
+
+  private Optional<DirectBuffer> extractMessageName(
+      final ExecutableMessage message, final BpmnStepContext context) {
+
+    final Expression messageNameExpression = message.getMessageNameExpression();
+    return expressionProcessor.evaluateStringExpression(messageNameExpression, context);
   }
 
   private boolean sendCloseMessageSubscriptionCommand(
@@ -272,5 +282,30 @@ public final class CatchEventBehavior {
     }
 
     return extractedCorrelationKeys;
+  }
+
+  private Map<DirectBuffer, DirectBuffer> extractMessageNames(
+      final List<ExecutableCatchEvent> events, final BpmnStepContext context) {
+    final Map<DirectBuffer, DirectBuffer> extractedMessageNames = new HashMap<>();
+
+    final List<DirectBuffer> eventIdsWithNameEvaluationFailures = new ArrayList<>();
+
+    for (final ExecutableCatchEvent event : events) {
+      if (event.isMessage()) {
+        final Optional<DirectBuffer> messageName = extractMessageName(event.getMessage(), context);
+
+        if (messageName.isPresent()) {
+          extractedMessageNames.put(event.getId(), cloneBuffer(messageName.get()));
+        } else {
+          eventIdsWithNameEvaluationFailures.add(event.getId());
+        }
+      }
+    }
+
+    if (!eventIdsWithNameEvaluationFailures.isEmpty()) {
+      throw new MessageNameException(context, eventIdsWithNameEvaluationFailures);
+    }
+
+    return extractedMessageNames;
   }
 }

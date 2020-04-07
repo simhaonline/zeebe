@@ -19,6 +19,7 @@ import io.zeebe.engine.processor.workflow.deployment.model.element.ExecutableWor
 import io.zeebe.engine.processor.workflow.deployment.model.transformation.ModelElementTransformer;
 import io.zeebe.engine.processor.workflow.deployment.model.transformation.TransformContext;
 import io.zeebe.model.bpmn.instance.FlowNode;
+import io.zeebe.model.bpmn.instance.Process;
 import io.zeebe.model.bpmn.instance.StartEvent;
 import io.zeebe.protocol.record.intent.WorkflowInstanceIntent;
 
@@ -48,7 +49,7 @@ public final class StartEventTransformer implements ModelElementTransformer<Star
       workflow.addStartEvent(startEvent);
     }
 
-    if (startEvent.isMessage()) {
+    if (startEvent.isMessage() && element.getScope() instanceof Process) {
       evaluateMessageNameExpression(startEvent, context);
     }
 

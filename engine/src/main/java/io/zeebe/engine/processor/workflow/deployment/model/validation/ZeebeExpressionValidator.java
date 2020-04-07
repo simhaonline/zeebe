@@ -7,9 +7,7 @@
  */
 package io.zeebe.engine.processor.workflow.deployment.model.validation;
 
-import io.zeebe.el.EvaluationResult;
 import io.zeebe.el.ExpressionLanguage;
-import io.zeebe.el.ResultType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -45,7 +43,6 @@ public final class ZeebeExpressionValidator<T extends ModelElementInstance>
 
   @Override
   public void validate(final T element, final ValidationResultCollector validationResultCollector) {
-
     verifications.forEach(
         verification -> {
           final String expression = verification.expressionSupplier.apply(element);
@@ -106,7 +103,6 @@ public final class ZeebeExpressionValidator<T extends ModelElementInstance>
     }
 
     public ZeebeExpressionValidator<T> build(final ExpressionLanguage expressionLanguage) {
-
       return new ZeebeExpressionValidator<>(expressionLanguage, elementType, verifications);
     }
   }
@@ -114,42 +110,10 @@ public final class ZeebeExpressionValidator<T extends ModelElementInstance>
   public static final class ExpressionVerification {
 
     private boolean isNonStatic = false;
-    private boolean isConstant = false;
-    private ResultType constantResultType = null;
     private boolean isMandatory = false;
 
     public ExpressionVerification isNonStatic() {
       isNonStatic = true;
-      return this;
-    }
-
-    /**
-     * Returns an {@code ExpressionVerification} that checks whether the expression is a constant
-     * expression. Each static expression is a constant expression. Non-static expressions are
-     * constant expressions iff they are conposed of only literals and functions (i.e. they must not
-     * contain variables)
-     *
-     * @return an {@code ExpressionVerification} that checks whether the expression is a constant *
-     *     expression
-     */
-    public ExpressionVerification isConstantWithResultType() {
-      isConstant = true;
-      return this;
-    }
-
-    /**
-     * Returns an {@code ExpressionVerification} that checks whether the expression is a constant
-     * expression of a given type. Each static expression is a constant expression. Non-static
-     * expressions are constant expressions iff they are conposed of only literals and functions
-     * (i.e. they must not contain variables)
-     *
-     * @param resultType the expected result type for the constant expression
-     * @return an {@code ExpressionVerification} that checks whether the expression is a constant
-     *     expression of a given type
-     */
-    public ExpressionVerification isConstantWithResultType(ResultType resultType) {
-      isConstant = true;
-      constantResultType = resultType;
       return this;
     }
 
@@ -177,22 +141,6 @@ public final class ZeebeExpressionValidator<T extends ModelElementInstance>
         if (!parseResult.isValid()) {
           resultCollector.addError(0, parseResult.getFailureMessage());
           return;
-        }
-
-        if (isConstant) {
-          final EvaluationResult evaluationResult =
-              expressionLanguage.evaluateExpression(parseResult, var -> null);
-
-          if (evaluationResult.isFailure()) {
-            resultCollector.addError(
-                0,
-                String.format(
-                    "Expected constant expression  but found '%s', which could not be evaluated without context: %s",
-                    expression, evaluationResult.getFailureMessage()));
-          } else if (constantResultType != null
-              && evaluationResult.getType() != constantResultType) {
-
-          }
         }
 
         if (parseResult.isStatic() && isNonStatic) {
