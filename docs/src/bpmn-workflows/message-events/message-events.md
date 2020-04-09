@@ -34,7 +34,7 @@ When the activity is entered then it creates a corresponding message subscriptio
 
 ## Messages
 
-A message can be referenced by one or more message events. It **must** define the name of the message (e.g. `Money collected`) and the `correlationKey` expression (e.g. `= orderId`), except it is only referenced by message start events.
+A message can be referenced by one or more message events. It **must** define the name of the message (e.g. `Money collected`) and the `correlationKey` expression (e.g. `= orderId`). If the message is only referenced by message start events then the `correlationKey` is not required.
 
 The `correlationKey` is an expression that usually [accesses a variable](/reference/expressions.html#access-variables) of the workflow instance that holds the correlation key of the message. The expression is evaluated on activating the message event and must result either in a `string` or in a `number`.
 

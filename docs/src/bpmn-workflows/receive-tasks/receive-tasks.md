@@ -12,7 +12,7 @@ A message can published using one of the Zeebe clients. When the message is corr
 
 ## Messages
 
-A message can be referenced by one or more receive events. It **must** define the name of the message (e.g. `Money collected`) and the `correlationKey` expression (e.g. `= orderId`).
+A message can be referenced by one or more receive tasks. It **must** define the name of the message (e.g. `Money collected`) and the `correlationKey` expression (e.g. `= orderId`).
 
 The `correlationKey` is an expression that usually [accesses a variable](/reference/expressions.html#access-variables) of the workflow instance that holds the correlation key of the message. The expression is evaluated on activating the receive task and must result either in a `string` or in a `number`.
 
@@ -98,5 +98,6 @@ By default, all message variables are merged into the workflow instance. This be
 
 References:
 * [Message Correlation](/reference/message-correlation.html)
+* [Expressions](/reference/expressions.html)
 * [Variable Mappings](/reference/variables.html#inputoutput-variable-mappings)
 * [Incidents](/reference/incidents.html)

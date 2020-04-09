@@ -33,7 +33,7 @@ A timer can be defined either as a static value (e.g. `PT3D`) or as an [expressi
 * [access a variable](/reference/expressions.html#access-variables) (e.g. `= remainingTime`)
 * [using temporal values](/reference/expressions.html#temporal-expressions) (e.g. `= date and time(expirationDate) - date and time(creationDate)`)
 
-The expression is evaluated on activating the timer catch event. It must result either in a `string` that has the same ISO 8601 format as the static value or an equivalent temporal value (i.e. a date-time, a duration, or a cycle).
+If the expression belongs to a timer start event of the workflow then it is evaluated on deploying the workflow. Otherwise, it is evaluated on activating the timer catch event. The evaluation must result either in a `string` that has the same ISO 8601 format as the static value or an equivalent temporal value (i.e. a date-time, a duration, or a cycle).
 
 ### Time Date
 
