@@ -17,7 +17,7 @@ Additionally, the following attributes of BPMN elements can define an expression
 
 Some attributes of BPMN elements, like the timer definition of a timer catch event, can be defined either as a static value (e.g. `PT2H`) or as an expression (e.g. `= remaingTime`).
 
-The value is identified as an expression if it starts with an **equal sign** `=` (i.e. the expression prefix). The text behind the equal sign is the actual expression. For example, `= remaingTime` defines the expression `remaingTime` that access a variable with the name `remaingTime`.
+The value is identified as an expression if it starts with an **equal sign** `=` (i.e. the expression prefix). The text behind the equal sign is the actual expression. For example, `= remaingTime` defines the expression `remaingTime` that accesses a variable with the name `remaingTime`.
 
 If the value doesn't have the prefix then it is used as static value. A static value is used either as a string (e.g. job type) or as a number (e.g. job retries). A string value must not be enclosed in quotes.
 

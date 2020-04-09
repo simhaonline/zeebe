@@ -14,7 +14,7 @@ A call activity must define the BPMN process id of the called workflow as `proce
 
 The new instance of the defined workflow will be created of its **latest version** - at the point when the call activity is activated.
 
-Usually, the `processId` is defined as a static value (e.g. `shipping-process`) but it can also be defined as [expression](/reference/expressions.html) (e.g. `= "shipping-" + tenantId`). The expressions is evaluated on activating the call activity and must result in a `string`.
+Usually, the `processId` is defined as a static value (e.g. `shipping-process`) but it can also be defined as [expression](/reference/expressions.html) (e.g. `= "shipping-" + tenantId`). The expression is evaluated on activating the call activity and must result in a `string`.
 
 ## Boundary Events
 

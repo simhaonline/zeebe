@@ -59,7 +59,7 @@ Input/output variable mappings can be used to create new variables or customize 
 
 Variable mappings are defined in the workflow as extension elements under `ioMapping`. Every variable mapping has a `source` and a `target` expression.
 
-The `source` expression defines the **value** of the mapping. Usually, it [access a variable](/reference/expressions.html#access-variables) of the workflow instance that holds the value. If the variable or the nested property doesn't exist then an [incident](/reference/incidents.html) is created.
+The `source` expression defines the **value** of the mapping. Usually, it [accesses a variable](/reference/expressions.html#access-variables) of the workflow instance that holds the value. If the variable or the nested property doesn't exist then an [incident](/reference/incidents.html) is created.
 
 The `target` expression defines **where** the value of the `source` expression is stored. It can reference a variable by its name or a nested property of a variable. If the variable or the nested property doesn't exist then it is created.
 

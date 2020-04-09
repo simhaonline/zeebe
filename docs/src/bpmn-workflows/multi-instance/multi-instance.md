@@ -29,9 +29,9 @@ In case of a **parallel** multi-instance activity, all instances are created whe
 
 ## Defining the Collection to Iterate over
 
-A multi-instance activity **must** have an `inputCollection` expression that defines the collection to iterate over (e.g. `= items`). Usually, it [access a variable](/reference/expressions.html#access-variables) of the workflow instance that holds the collection. The expression is evaluated on activating the multi-instance body. It must result in an `array` of any type (e.g. `["item-1", "item-2"]`).
+A multi-instance activity **must** have an `inputCollection` expression that defines the collection to iterate over (e.g. `= items`). Usually, it [accesses a variable](/reference/expressions.html#access-variables) of the workflow instance that holds the collection. The expression is evaluated on activating the multi-instance body. It must result in an `array` of any type (e.g. `["item-1", "item-2"]`).
 
-In order to access the current element of the `inputCollection` within the instance, the multi-instance activity can define the `inputElement` variable (e.g. `item`). The element is stored as a local variable of the instance under the given name.
+In order to access the current element of the `inputCollection` value within the instance, the multi-instance activity can define the `inputElement` variable (e.g. `item`). The element is stored as a local variable of the instance under the given name.
 
 If the `inputCollection` value is **empty** then the multi-instance body is completed immediately and no instances are created. It behaves like the activity is skipped.
 
@@ -39,13 +39,13 @@ If the `inputCollection` value is **empty** then the multi-instance body is comp
 
 The output of a multi-instance activity (e.g. the result of a calculation) can be collected from the instances by defining the `outputCollection` **and** the `outputElement` expression.
 
-`outputCollection` defines the name of the variable under which the collected output is stored (e.g. `results`). It is created as local variable of the multi-instance body and gets updated when an instance is completed. When the multi-instance body is completed, the variable is propagated to its parent scope.
+`outputCollection` defines the name of the variable under which the collected output is stored (e.g. `results`). It is created as a local variable of the multi-instance body and gets updated when an instance is completed. When the multi-instance body is completed, the variable is propagated to its parent scope.
 
-`outputElement` is an expression that defines the output of the instance (e.g. `= result`). Usually, it [access a variable](/reference/expressions.html#access-variables) of the instance that holds the output value. If the expression only access a variable or a nested property then it is created as **local variable** of the instance. This variable should be updated with the output value, for example, by a job worker providing a variable with the name `result`. Since the variable is defined as local variable, it is not propagated to its parent scope and is only visible within the instance.
+`outputElement` is an expression that defines the output of the instance (e.g. `= result`). Usually, it [accesses a variable](/reference/expressions.html#access-variables) of the instance that holds the output value. If the expression only accesses a variable or a nested property then it is created as **local variable** of the instance. This variable should be updated with the output value, for example, by a job worker providing a variable with the name `result`. Since the variable is defined as a local variable, it is not propagated to its parent scope and is only visible within the instance.
 
 When the instance is completed, the `outputElement` expression is evaluated and the result is inserted into the `outputCollection` at the same index as the `inputElement` of the `inputCollection`. So, the order of the `outputCollection` is determined and matches to the `inputCollection`, even for parallel multi-instance activities. If the `outputElement` variable is not updated then `null` is inserted instead.
 
-If the `inputCollection` is empty then an empty array is propagated as `outputCollection`.
+If the `inputCollection` value is empty then an empty array is propagated as `outputCollection`.
 
 ## Boundary Events
 
